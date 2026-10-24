@@ -98,8 +98,7 @@ function Footer() {
         <div>
           <Logo />
           <p className="mt-3 max-w-sm text-sm">
-            A B.Tech Computer Science and Engineering minor project: Smart Web-Based Vehicle Breakdown
-            Assistance and Service Management System.
+            Smart Web-Based Vehicle Breakdown Assistance and Service Management System
           </p>
         </div>
         <p className="text-sm">&copy; {new Date().getFullYear()} VehicleCare. Academic project.</p>

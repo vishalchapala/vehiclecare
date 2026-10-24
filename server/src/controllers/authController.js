@@ -15,14 +15,12 @@ exports.register = asyncHandler(async (req, res) => {
     phone,
     password,
     role, // already limited to customer/provider by the route validation
-    isApproved: role !== 'provider', // providers wait for admin approval
+    isApproved: true, // providers are approved automatically
   });
 
   res.status(201).json({
     success: true,
-    message: role === 'provider'
-      ? 'Account created. An admin must approve your provider account before you receive requests.'
-      : 'Account created successfully.',
+    message: 'Account created successfully.',
     data: { token: signToken(user._id), user },
   });
 });
