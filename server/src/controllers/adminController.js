@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Vehicle = require('../models/Vehicle');
 const BreakdownRequest = require('../models/BreakdownRequest');
+const ServiceCategory = require('../models/ServiceCategory');
 const { AppError, asyncHandler, getPagination } = require('../utils/helpers');
 
 // GET /api/admin/users?role=provider&approved=false
@@ -30,6 +31,16 @@ exports.updateUser = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { user } });
 });
 
+// GET /api/admin/vehicles  (all registered vehicles, with their owner)
+exports.listVehicles = asyncHandler(async (req, res) => {
+  const { page, limit, skip } = getPagination(req.query, 20);
+  const [vehicles, total] = await Promise.all([
+    Vehicle.find().sort('-createdAt').skip(skip).limit(limit).populate('owner', 'name email phone'),
+    Vehicle.countDocuments(),
+  ]);
+  res.json({ success: true, data: { vehicles, pagination: { page, limit, total, pages: Math.ceil(total / limit) } } });
+});
+
 // GET /api/admin/stats  (real counts from the database)
 exports.stats = asyncHandler(async (req, res) => {
   const [byStatus, byRole, vehicles] = await Promise.all([
@@ -48,4 +59,26 @@ exports.stats = asyncHandler(async (req, res) => {
       pendingProviders: await User.countDocuments({ role: 'provider', isApproved: false }),
     },
   });
+});
+
+// ---- Service price list (maintenance services) ----
+exports.listServices = asyncHandler(async (req, res) => {
+  const services = await ServiceCategory.find().sort('name');
+  res.json({ success: true, data: { services } });
+});
+
+exports.createService = asyncHandler(async (req, res) => {
+  const { name, description, estimatedPrice } = req.body;
+  const service = await ServiceCategory.create({ name, description, estimatedPrice });
+  res.status(201).json({ success: true, data: { service } });
+});
+
+exports.updateService = asyncHandler(async (req, res) => {
+  const service = await ServiceCategory.findById(req.params.id);
+  if (!service) throw new AppError('Service not found', 404);
+  for (const key of ['name', 'description', 'estimatedPrice', 'isActive']) {
+    if (req.body[key] !== undefined) service[key] = req.body[key];
+  }
+  await service.save();
+  res.json({ success: true, data: { service } });
 });

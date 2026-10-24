@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { CATEGORIES, STATUSES } = require('../utils/statusRules');
+const { STATUSES } = require('../utils/statusRules');
 
 const historySchema = new mongoose.Schema(
   {
@@ -11,11 +11,15 @@ const historySchema = new mongoose.Schema(
   { _id: false }
 );
 
+// One collection holds both kinds of request. "type" tells them apart, and both follow the same status workflow.
 const requestSchema = new mongoose.Schema(
   {
+    type: { type: String, enum: ['breakdown', 'maintenance'], default: 'breakdown', index: true },
     customer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     vehicle: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle', required: true },
-    category: { type: String, enum: CATEGORIES, required: true },
+    category: { type: String, required: true, trim: true, maxlength: 80 },
+    serviceCategory: { type: mongoose.Schema.Types.ObjectId, ref: 'ServiceCategory' }, // maintenance only
+    preferredDate: { type: Date }, // maintenance only
     description: { type: String, required: true, trim: true, minlength: 10, maxlength: 500 },
     address: { type: String, required: true, trim: true, maxlength: 250 },
     latitude: { type: Number, min: -90, max: 90 },

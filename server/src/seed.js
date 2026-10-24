@@ -3,6 +3,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const User = require('./models/User');
+const ServiceCategory = require('./models/ServiceCategory');
 
 async function seed() {
   const password = process.env.SEED_PASSWORD;
@@ -23,6 +24,20 @@ async function seed() {
     if (exists) { console.log(`Already exists: ${a.email}`); continue; }
     await User.create({ ...a, password, isApproved: true });
     console.log(`Created ${a.role}: ${a.email}`);
+  }
+  const services = [
+    { name: 'Periodic service', description: 'Full routine service with fluids and filters checked', estimatedPrice: 2500 },
+    { name: 'Oil change', description: 'Engine oil and oil filter replacement', estimatedPrice: 1200 },
+    { name: 'Brake inspection', description: 'Brake pads, discs and fluid check', estimatedPrice: 800 },
+    { name: 'Tyre rotation and alignment', description: 'Wheel alignment and tyre rotation', estimatedPrice: 900 },
+    { name: 'Battery check', description: 'Battery health test and terminal cleaning', estimatedPrice: 300 },
+    { name: 'AC service', description: 'Air conditioning check and gas top-up', estimatedPrice: 1800 },
+    { name: 'General inspection', description: 'Multi-point vehicle health check', estimatedPrice: 500 },
+  ];
+  for (const sv of services) {
+    if (await ServiceCategory.findOne({ name: sv.name })) { console.log(`Already exists: ${sv.name}`); continue; }
+    await ServiceCategory.create(sv);
+    console.log(`Created service: ${sv.name}`);
   }
   await mongoose.disconnect();
 }

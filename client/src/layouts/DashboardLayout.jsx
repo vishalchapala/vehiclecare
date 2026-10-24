@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Car, AlertTriangle, ClipboardList, Users, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Car, AlertTriangle, ClipboardList, Users, LogOut, Menu, X, Wrench } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import Logo from '../components/Logo.jsx'
+import NotificationBell from '../components/NotificationBell.jsx'
 
 const navByRole = {
   customer: [
     { to: '/customer', label: 'Overview', icon: LayoutDashboard, end: true },
     { to: '/customer/vehicles', label: 'My Vehicles', icon: Car },
     { to: '/customer/report', label: 'Report Breakdown', icon: AlertTriangle },
+    { to: '/customer/service', label: 'Request Service', icon: Wrench },
     { to: '/customer/requests', label: 'My Requests', icon: ClipboardList },
   ],
   provider: [
@@ -19,6 +21,8 @@ const navByRole = {
     { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
     { to: '/admin/requests', label: 'All Requests', icon: ClipboardList },
     { to: '/admin/users', label: 'Users', icon: Users },
+    { to: '/admin/vehicles', label: 'Vehicles', icon: Car },
+    { to: '/admin/services', label: 'Services', icon: Wrench },
   ],
 }
 
@@ -85,9 +89,12 @@ export default function DashboardLayout() {
           >
             {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
-          <div className="ml-auto text-right">
-            <p className="text-sm font-semibold text-ink">{user.name}</p>
-            <p className="text-xs capitalize text-slate-500">{user.role}</p>
+          <div className="ml-auto flex items-center gap-4">
+            <NotificationBell />
+            <div className="text-right">
+              <p className="text-sm font-semibold text-ink">{user.name}</p>
+              <p className="text-xs capitalize text-slate-500">{user.role}</p>
+            </div>
           </div>
         </header>
 

@@ -20,6 +20,8 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/vehicles', require('./routes/vehicles'));
 app.use('/api/requests', require('./routes/requests'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/services', require('./routes/services'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 app.use(notFound);
 app.use(errorHandler);

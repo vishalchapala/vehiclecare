@@ -1,8 +1,10 @@
 const BreakdownRequest = require('../models/BreakdownRequest');
 const Vehicle = require('../models/Vehicle');
 const User = require('../models/User');
+const ServiceCategory = require('../models/ServiceCategory');
 const { AppError, asyncHandler, getPagination } = require('../utils/helpers');
 const { HIGH_PRIORITY, TRANSITIONS } = require('../utils/statusRules');
+const { notify, notifyAdmins } = require('../utils/notify');
 
 const populateAll = (q) =>
   q
@@ -20,25 +22,42 @@ async function findAccessible(id, user) {
   return request;
 }
 
-// POST /api/requests  (customer)
+const label = (r) => (r.type === 'maintenance' ? `service "${r.category}"` : `breakdown "${r.category}"`);
+
+// POST /api/requests  (customer) - breakdown or maintenance
 exports.create = asyncHandler(async (req, res) => {
-  const { vehicle, category, description, address, latitude, longitude, contactPhone } = req.body;
+  const { type = 'breakdown', vehicle, category, serviceCategory, preferredDate, description, address, latitude, longitude, contactPhone } = req.body;
 
   const ownVehicle = await Vehicle.findOne({ _id: vehicle, owner: req.user._id });
   if (!ownVehicle) throw new AppError('Vehicle not found', 404);
 
-  const request = await BreakdownRequest.create({
+  const data = {
+    type,
     customer: req.user._id,
     vehicle,
-    category,
     description,
     address,
     latitude,
     longitude,
     contactPhone,
-    priority: HIGH_PRIORITY.includes(category) ? 'High' : 'Normal',
     statusHistory: [{ status: 'Reported', by: req.user._id }],
-  });
+  };
+
+  if (type === 'maintenance') {
+    // The price and name come from the database, never from the browser.
+    const service = await ServiceCategory.findOne({ _id: serviceCategory, isActive: true });
+    if (!service) throw new AppError('Selected service is not available', 400);
+    data.category = service.name;
+    data.serviceCategory = service._id;
+    data.preferredDate = preferredDate;
+    data.estimatedCost = service.estimatedPrice;
+  } else {
+    data.category = category;
+    data.priority = HIGH_PRIORITY.includes(category) ? 'High' : 'Normal';
+  }
+
+  const request = await BreakdownRequest.create(data);
+  await notifyAdmins(`New ${label(request)} from ${req.user.name}`, request._id);
 
   res.status(201).json({ success: true, data: { request } });
 });
@@ -49,6 +68,7 @@ exports.list = asyncHandler(async (req, res) => {
   if (req.user.role === 'customer') filter.customer = req.user._id;
   if (req.user.role === 'provider') filter.provider = req.user._id;
   if (req.query.status) filter.status = req.query.status;
+  if (req.query.type) filter.type = req.query.type;
 
   const { page, limit, skip } = getPagination(req.query);
   const [requests, total] = await Promise.all([
@@ -83,6 +103,9 @@ exports.assign = asyncHandler(async (req, res) => {
   request.statusHistory.push({ status: 'Assigned', by: req.user._id, note: `Assigned to ${provider.name}` });
   await request.save();
 
+  await notify(provider._id, `You were assigned a new ${label(request)}`, request._id);
+  await notify(request.customer, `${provider.name} was assigned to your ${label(request)}`, request._id);
+
   res.json({ success: true, data: { request } });
 });
 
@@ -98,6 +121,7 @@ exports.updateStatus = asyncHandler(async (req, res) => {
     throw new AppError(`A ${role} cannot change a request from "${request.status}" to "${status}"`, 400);
   }
 
+  const previousProvider = request.provider;
   if (status === 'Reported') request.provider = undefined; // reject or unassign: back to the pool
 
   if (role === 'provider') {
@@ -109,6 +133,20 @@ exports.updateStatus = asyncHandler(async (req, res) => {
   request.status = status;
   request.statusHistory.push({ status, by: req.user._id, note });
   await request.save();
+
+  // Tell the people affected by this change.
+  if (role === 'provider' && status === 'Reported') {
+    await notifyAdmins(`${req.user.name} rejected the ${label(request)}. It needs a new provider.`, request._id);
+  } else if (role === 'provider') {
+    await notify(request.customer, `Your ${label(request)} is now ${status}`, request._id);
+  } else if (role === 'admin' && status === 'Reported') {
+    await notify(previousProvider, `You were removed from the ${label(request)}`, request._id);
+    await notify(request.customer, `Your ${label(request)} is being reassigned`, request._id);
+  } else if (status === 'Cancelled') {
+    if (role === 'customer') await notifyAdmins(`${req.user.name} cancelled the ${label(request)}`, request._id);
+    if (role === 'admin') await notify(request.customer, `Your ${label(request)} was cancelled by the admin`, request._id);
+    await notify(previousProvider, `The ${label(request)} was cancelled`, request._id);
+  }
 
   res.json({ success: true, data: { request } });
 });

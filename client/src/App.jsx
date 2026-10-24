@@ -12,6 +12,9 @@ import ReportBreakdown from './pages/app/ReportBreakdown.jsx'
 import Requests from './pages/app/Requests.jsx'
 import RequestDetail from './pages/app/RequestDetail.jsx'
 import AdminUsers from './pages/app/AdminUsers.jsx'
+import AdminVehicles from './pages/app/AdminVehicles.jsx'
+import AdminServices from './pages/app/AdminServices.jsx'
+import RequestService from './pages/app/RequestService.jsx'
 
 export default function App() {
   return (
@@ -30,6 +33,7 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="vehicles" element={<Vehicles />} />
           <Route path="report" element={<ReportBreakdown />} />
+          <Route path="service" element={<RequestService />} />
           <Route path="requests" element={<Requests />} />
           <Route path="requests/:id" element={<RequestDetail />} />
         </Route>
@@ -51,6 +55,8 @@ export default function App() {
           <Route path="requests" element={<Requests />} />
           <Route path="requests/:id" element={<RequestDetail />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="vehicles" element={<AdminVehicles />} />
+          <Route path="services" element={<AdminServices />} />
         </Route>
       </Route>
     </Routes>

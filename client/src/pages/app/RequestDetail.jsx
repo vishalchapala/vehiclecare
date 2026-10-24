@@ -107,6 +107,7 @@ export default function RequestDetail() {
         <h1 className="text-2xl font-bold tracking-tight text-ink">{r.category}</h1>
         <StatusBadge status={r.status} />
         {r.priority === 'High' && <Badge tone="danger">High priority</Badge>}
+        {r.type === 'maintenance' && <Badge tone="info">Maintenance service</Badge>}
       </div>
 
       <div className="mb-6 space-y-3">
@@ -123,6 +124,7 @@ export default function RequestDetail() {
               <Detail label="Reported">{formatDate(r.createdAt)}</Detail>
               <Detail label="Location">{r.address}</Detail>
               <Detail label="Contact number">{r.contactPhone}</Detail>
+              {r.preferredDate && <Detail label="Preferred date">{new Date(r.preferredDate).toLocaleDateString('en-IN', { dateStyle: 'medium' })}</Detail>}
               {r.latitude != null && <Detail label="Coordinates">{r.latitude.toFixed(5)}, {r.longitude.toFixed(5)}</Detail>}
               {user.role !== 'customer' && <Detail label="Customer">{r.customer?.name}</Detail>}
               <Detail label="Service provider">{r.provider ? `${r.provider.name} (${r.provider.phone})` : 'Not assigned yet'}</Detail>

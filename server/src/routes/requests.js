@@ -6,6 +6,8 @@ const c = require('../controllers/requestController');
 const { CATEGORIES, STATUSES } = require('../utils/statusRules');
 
 const id = param('id').isMongoId().withMessage('Invalid ID');
+const isMaintenance = (v, { req }) => req.body.type === 'maintenance';
+const isBreakdown = (v, { req }) => req.body.type !== 'maintenance';
 
 router.use(protect);
 
@@ -13,8 +15,21 @@ router.post(
   '/',
   authorize('customer'),
   [
+    body('type').optional().isIn(['breakdown', 'maintenance']).withMessage('Invalid request type'),
     body('vehicle').isMongoId().withMessage('Select a vehicle'),
-    body('category').isIn(CATEGORIES).withMessage('Choose a valid breakdown category'),
+    // Breakdown requests choose a category from our fixed list.
+    body('category').if(isBreakdown).isIn(CATEGORIES).withMessage('Choose a valid breakdown category'),
+    // Maintenance requests choose a service and a date.
+    body('serviceCategory').if(isMaintenance).isMongoId().withMessage('Select a service'),
+    body('preferredDate')
+      .if(isMaintenance)
+      .isISO8601().withMessage('Choose a preferred date')
+      .custom((v) => {
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+        return new Date(v) >= today;
+      })
+      .withMessage('Preferred date cannot be in the past'),
     body('description').trim().isLength({ min: 10, max: 500 }).withMessage('Describe the problem in 10 to 500 characters'),
     body('address').trim().isLength({ min: 5, max: 250 }).withMessage('Enter the location or address'),
     body('latitude').optional({ values: 'falsy' }).isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
@@ -27,7 +42,10 @@ router.post(
 
 router.get(
   '/',
-  [query('status').optional().isIn(STATUSES).withMessage('Invalid status')],
+  [
+    query('status').optional().isIn(STATUSES).withMessage('Invalid status'),
+    query('type').optional().isIn(['breakdown', 'maintenance']).withMessage('Invalid type'),
+  ],
   validate,
   c.list
 );
