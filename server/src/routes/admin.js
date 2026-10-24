@@ -13,7 +13,6 @@ router.patch(
   '/users/:id',
   [
     param('id').isMongoId().withMessage('Invalid ID'),
-    body('isApproved').optional().isBoolean().withMessage('isApproved must be true or false'),
     body('isActive').optional().isBoolean().withMessage('isActive must be true or false'),
   ],
   validate,

@@ -18,13 +18,12 @@ exports.listUsers = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { users, pagination: { page, limit, total, pages: Math.ceil(total / limit) } } });
 });
 
-// PATCH /api/admin/users/:id  (approve providers, enable or disable accounts)
+// PATCH /api/admin/users/:id  (enable or disable accounts)
 exports.updateUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) throw new AppError('User not found', 404);
   if (user.role === 'admin') throw new AppError('Admin accounts cannot be changed here', 400);
 
-  if (req.body.isApproved !== undefined) user.isApproved = req.body.isApproved;
   if (req.body.isActive !== undefined) user.isActive = req.body.isActive;
   await user.save();
 
@@ -56,7 +55,6 @@ exports.stats = asyncHandler(async (req, res) => {
       requestsByStatus: toObject(byStatus),
       usersByRole: toObject(byRole),
       totalVehicles: vehicles,
-      pendingProviders: await User.countDocuments({ role: 'provider', isApproved: false }),
     },
   });
 });

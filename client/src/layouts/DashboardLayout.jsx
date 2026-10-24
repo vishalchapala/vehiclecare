@@ -99,11 +99,6 @@ export default function DashboardLayout() {
         </header>
 
         <main className="mx-auto max-w-5xl px-4 py-8 sm:px-8">
-          {user.role === 'provider' && !user.isApproved && (
-            <div role="status" className="mb-6 rounded-lg bg-amber-50 p-4 text-sm text-amber-800">
-              Your provider account is waiting for admin approval. You will receive requests after it is approved.
-            </div>
-          )}
           <Outlet />
         </main>
       </div>

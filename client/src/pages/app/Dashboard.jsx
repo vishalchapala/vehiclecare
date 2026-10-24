@@ -70,7 +70,6 @@ function AdminOverview() {
         <StatCard label="Total requests" value={total} />
         <StatCard label="Open requests" value={open} />
         <StatCard label="Resolved" value={by.Resolved || 0} />
-        <StatCard label="Providers awaiting approval" value={stats.pendingProviders} />
         <StatCard label="Customers" value={stats.usersByRole.customer || 0} />
         <StatCard label="Providers" value={stats.usersByRole.provider || 0} />
         <StatCard label="Registered vehicles" value={stats.totalVehicles} />

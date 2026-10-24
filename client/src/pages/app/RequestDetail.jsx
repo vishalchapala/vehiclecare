@@ -51,7 +51,7 @@ export default function RequestDetail() {
   // Admin needs the list of approved providers to assign one.
   useEffect(() => {
     if (user.role !== 'admin') return
-    api.get('/admin/users?role=provider&approved=true&limit=50')
+    api.get('/admin/users?role=provider&limit=50')
       .then((r) => {
         setProviders(r.data.data.users.filter((u) => u.isActive))
       })
@@ -160,10 +160,10 @@ export default function RequestDetail() {
             <section className="rounded-xl border border-slate-200 bg-white p-6">
               <h2 className="mb-4 text-lg font-semibold text-ink">Assign a provider</h2>
               {providers.length === 0 ? (
-                <p className="text-sm text-slate-600">No approved providers yet. Approve one in the Users page.</p>
+                <p className="text-sm text-slate-600">No providers have registered yet.</p>
               ) : (
                 <div className="flex flex-wrap items-end gap-3">
-                  <Select id="provider" label="Approved providers" value={providerId} onChange={(e) => setProviderId(e.target.value)} className="min-w-56 flex-1">
+                  <Select id="provider" label="Providers" value={providerId} onChange={(e) => setProviderId(e.target.value)} className="min-w-56 flex-1">
                     <option value="">Select a provider</option>
                     {providers.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
                   </Select>

@@ -67,15 +67,12 @@ export default function AdminUsers() {
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1.5">
                       <Badge tone={u.isActive ? 'success' : 'danger'}>{u.isActive ? 'Active' : 'Disabled'}</Badge>
-                      {u.role === 'provider' && <Badge tone={u.isApproved ? 'info' : 'warning'}>{u.isApproved ? 'Approved' : 'Awaiting approval'}</Badge>}
+                      
                     </div>
                   </td>
                   <td className="px-4 py-3">
                     {u.role === 'admin' ? <span className="text-slate-400">-</span> : (
                       <div className="flex flex-wrap gap-2">
-                        {u.role === 'provider' && !u.isApproved && (
-                          <Button loading={busyId === u._id} onClick={() => update(u, { isApproved: true })}>Approve</Button>
-                        )}
                         <Button variant="secondary" loading={busyId === u._id}
                           onClick={() => update(u, { isActive: !u.isActive })}>
                           {u.isActive ? 'Disable' : 'Enable'}

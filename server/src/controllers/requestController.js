@@ -95,8 +95,8 @@ exports.assign = asyncHandler(async (req, res) => {
   if (!request) throw new AppError('Request not found', 404);
   if (request.status !== 'Reported') throw new AppError('Only requests with status Reported can be assigned', 400);
 
-  const provider = await User.findOne({ _id: req.body.providerId, role: 'provider', isApproved: true, isActive: true });
-  if (!provider) throw new AppError('Provider not found or not approved', 400);
+  const provider = await User.findOne({ _id: req.body.providerId, role: 'provider', isActive: true });
+  if (!provider) throw new AppError('Provider not found or disabled', 400);
 
   request.provider = provider._id;
   request.status = 'Assigned';
