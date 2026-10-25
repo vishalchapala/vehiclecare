@@ -3,7 +3,7 @@ const { body } = require('express-validator');
 const rateLimit = require('express-rate-limit');
 const validate = require('../middleware/validate');
 const { protect, authorize } = require('../middleware/auth');
-const { register, login, me, setAvailability, updateProfile, changePassword } = require('../controllers/authController');
+const { register, login, me, setAvailability, updateProfile, changePassword, forgotPassword, resetPassword } = require('../controllers/authController');
 
 // Slows down password-guessing attacks.
 const authLimiter = rateLimit({
@@ -40,6 +40,28 @@ router.post(
   [email, body('password').notEmpty().withMessage('Password is required')],
   validate,
   login
+);
+
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many reset requests. Please try again later.' },
+});
+
+router.post('/forgot-password', forgotLimiter, [email], validate, forgotPassword);
+router.post(
+  '/reset-password/:token',
+  authLimiter,
+  [
+    body('password')
+      .isLength({ min: 8, max: 72 }).withMessage('Password must be 8 to 72 characters')
+      .matches(/[A-Za-z]/).withMessage('Password needs at least one letter')
+      .matches(/[0-9]/).withMessage('Password needs at least one number'),
+  ],
+  validate,
+  resetPassword
 );
 
 router.get('/me', protect, me);

@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const User = require('../models/User');
 const Vehicle = require('../models/Vehicle');
 const BreakdownRequest = require('../models/BreakdownRequest');
@@ -79,4 +80,21 @@ exports.updateService = asyncHandler(async (req, res) => {
   }
   await service.save();
   res.json({ success: true, data: { service } });
+});
+
+// PATCH /api/admin/users/:id/reset-password
+// For users who forgot their password and cannot use email. Shows a temporary password once.
+exports.resetUserPassword = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) throw new AppError('User not found', 404);
+  if (user.role === 'admin') throw new AppError('Admin passwords cannot be reset here', 400);
+
+  const letters = 'abcdefghjkmnpqrstuvwxyz';
+  let suffix = '';
+  for (let i = 0; i < 6; i++) suffix += letters[crypto.randomInt(letters.length)];
+  const temporaryPassword = `Vc${crypto.randomInt(1000, 10000)}${suffix}`; // letters and numbers, 12 characters
+
+  user.password = temporaryPassword;
+  await user.save();
+  res.json({ success: true, data: { temporaryPassword } });
 });

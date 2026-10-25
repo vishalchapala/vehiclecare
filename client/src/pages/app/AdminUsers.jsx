@@ -4,6 +4,7 @@ import Badge from '../../components/ui/Badge.jsx'
 import Button from '../../components/ui/Button.jsx'
 import Select from '../../components/ui/Select.jsx'
 import Alert from '../../components/ui/Alert.jsx'
+import Modal from '../../components/ui/Modal.jsx'
 import PageLoader from '../../components/ui/PageLoader.jsx'
 
 export default function AdminUsers() {
@@ -11,6 +12,7 @@ export default function AdminUsers() {
   const [role, setRole] = useState('')
   const [error, setError] = useState('')
   const [busyId, setBusyId] = useState('')
+  const [temp, setTemp] = useState(null)
 
   const load = useCallback(() => {
     const params = new URLSearchParams({ limit: 50 })
@@ -26,6 +28,20 @@ export default function AdminUsers() {
     try {
       await api.patch(`/admin/users/${u._id}`, changes)
       await load()
+    } catch (err) {
+      setError(errorMessage(err))
+    } finally {
+      setBusyId('')
+    }
+  }
+
+  const resetPassword = async (u) => {
+    if (!window.confirm(`Reset the password for ${u.name}? They will get a temporary password.`)) return
+    setBusyId(u._id)
+    setError('')
+    try {
+      const res = await api.patch(`/admin/users/${u._id}/reset-password`)
+      setTemp({ name: u.name, email: u.email, password: res.data.data.temporaryPassword })
     } catch (err) {
       setError(errorMessage(err))
     } finally {
@@ -77,6 +93,7 @@ export default function AdminUsers() {
                           onClick={() => update(u, { isActive: !u.isActive })}>
                           {u.isActive ? 'Disable' : 'Enable'}
                         </Button>
+                        <Button variant="secondary" loading={busyId === u._id} onClick={() => resetPassword(u)}>Reset password</Button>
                       </div>
                     )}
                   </td>
@@ -85,6 +102,13 @@ export default function AdminUsers() {
             </tbody>
           </table>
         </div>
+      )}
+      {temp && (
+        <Modal title="Temporary password" onClose={() => setTemp(null)}>
+          <p className="text-sm text-slate-600">Give this password to <strong>{temp.name}</strong> ({temp.email}). It is shown only once. They should change it on their Profile page after logging in.</p>
+          <p className="mt-4 select-all rounded-lg bg-slate-100 p-4 text-center font-mono text-xl font-bold tracking-wider text-ink">{temp.password}</p>
+          <div className="mt-6 flex justify-end"><Button onClick={() => setTemp(null)}>Done</Button></div>
+        </Modal>
       )}
     </>
   )

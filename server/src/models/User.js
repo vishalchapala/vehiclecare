@@ -11,6 +11,9 @@ const userSchema = new mongoose.Schema(
     // Providers must be approved by an admin before they can be assigned requests.
     isApproved: { type: Boolean, default: true },
     isActive: { type: Boolean, default: true },
+    // Password reset by email: only a hash of the token is stored, never the token itself.
+    passwordResetToken: { type: String, select: false },
+    passwordResetExpires: { type: Date, select: false },
     providerProfile: {
       services: [String],
       isAvailable: { type: Boolean, default: true },

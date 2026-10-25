@@ -52,6 +52,9 @@ export default function Login() {
           placeholder="you@example.com" value={form.email} onChange={update} error={errors.email} />
         <Input id="password" name="password" type="password" label="Password" autoComplete="current-password"
           value={form.password} onChange={update} error={errors.password} />
+        <div className="text-right">
+          <Link to="/forgot-password" className="text-sm font-semibold text-brand-600 hover:underline">Forgot password?</Link>
+        </div>
         <Alert>{serverError}</Alert>
         <Button type="submit" size="lg" className="w-full" loading={loading}>Log in</Button>
       </form>

@@ -11,6 +11,7 @@ router.get('/users', c.listUsers);
 router.get('/vehicles', c.listVehicles);
 router.get('/messages', contact.list);
 router.get('/stats', c.stats);
+router.patch('/users/:id/reset-password', param('id').isMongoId().withMessage('Invalid ID'), validate, c.resetUserPassword);
 router.patch(
   '/users/:id',
   [

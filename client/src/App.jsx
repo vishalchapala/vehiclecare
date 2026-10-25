@@ -5,6 +5,8 @@ import ProtectedRoute from './routes/ProtectedRoute.jsx'
 import Landing from './pages/Landing.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
+import ForgotPassword from './pages/ForgotPassword.jsx'
+import ResetPassword from './pages/ResetPassword.jsx'
 import NotFound from './pages/NotFound.jsx'
 import Dashboard from './pages/app/Dashboard.jsx'
 import Vehicles from './pages/app/Vehicles.jsx'
@@ -34,6 +36,8 @@ export default function App() {
 
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:token" element={<ResetPassword />} />
 
       {/* Customer area */}
       <Route path="/customer" element={<ProtectedRoute roles={['customer']} />}>

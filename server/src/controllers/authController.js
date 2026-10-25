@@ -1,4 +1,6 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { sendEmail } = require('../utils/email');
 const User = require('../models/User');
 const { AppError, asyncHandler } = require('../utils/helpers');
 
@@ -68,4 +70,39 @@ exports.changePassword = asyncHandler(async (req, res) => {
   user.password = req.body.newPassword; // hashed automatically before saving
   await user.save();
   res.json({ success: true, message: 'Password changed successfully' });
+});
+
+// POST /api/auth/forgot-password
+// Always answers the same way, so nobody can use this form to find out which emails are registered.
+exports.forgotPassword = asyncHandler(async (req, res) => {
+  const user = await User.findOne({ email: req.body.email, isActive: true });
+  if (user) {
+    const token = crypto.randomBytes(32).toString('hex');
+    user.passwordResetToken = crypto.createHash('sha256').update(token).digest('hex');
+    user.passwordResetExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+    await user.save();
+
+    const base = (process.env.CLIENT_URL || 'http://localhost:5173').split(',')[0].trim().replace(/\/$/, '');
+    const sent = await sendEmail({
+      to: user.email,
+      subject: 'Reset your VehicleCare password',
+      text: `Hello ${user.name},\n\nUse this link to choose a new password. It expires in 30 minutes.\n\n${base}/reset-password/${token}\n\nIf you did not ask for this, you can ignore this email.`,
+    });
+    if (!sent) console.warn('Password reset email was not sent (email service is not configured or failed).');
+  }
+  res.json({ success: true, message: 'If an account exists for this email, a reset link has been sent.' });
+});
+
+// POST /api/auth/reset-password/:token
+exports.resetPassword = asyncHandler(async (req, res) => {
+  const hash = crypto.createHash('sha256').update(req.params.token).digest('hex');
+  const user = await User.findOne({ passwordResetToken: hash, passwordResetExpires: { $gt: new Date() } })
+    .select('+passwordResetToken +passwordResetExpires');
+  if (!user) throw new AppError('This reset link is invalid or has expired', 400);
+
+  user.password = req.body.password; // hashed automatically before saving
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save();
+  res.json({ success: true, message: 'Password reset. You can log in now.' });
 });
