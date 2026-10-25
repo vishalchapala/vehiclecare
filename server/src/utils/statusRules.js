@@ -11,10 +11,15 @@ const HIGH_PRIORITY = ['Accident', 'Brake problem'];
 const STATUSES = ['Reported', 'Assigned', 'Accepted', 'En Route', 'In Progress', 'Resolved', 'Cancelled'];
 const OPEN_STATUSES = ['Reported', 'Assigned', 'Accepted', 'En Route', 'In Progress'];
 
+// Who may move a request from one status to another through the status endpoint.
+// Two moves happen outside this table, on purpose:
+//   Reported -> Assigned   done by the system (automatic assignment, see utils/dispatch.js)
+//   Reported -> Accepted   done by a provider who takes an open request (claim endpoint)
+// Admins only view, so they have no transitions.
 const TRANSITIONS = {
-  Reported: { Assigned: ['admin'], Cancelled: ['customer', 'admin'] },
-  Assigned: { Accepted: ['provider'], Reported: ['provider', 'admin'], Cancelled: ['customer', 'admin'] },
-  Accepted: { 'En Route': ['provider'], Cancelled: ['customer', 'admin'] },
+  Reported: { Cancelled: ['customer'] },
+  Assigned: { Accepted: ['provider'], Reported: ['provider'], Cancelled: ['customer'] },
+  Accepted: { 'En Route': ['provider'], Cancelled: ['customer'] },
   'En Route': { 'In Progress': ['provider'] },
   'In Progress': { Resolved: ['provider'] },
 };

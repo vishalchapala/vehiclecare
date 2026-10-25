@@ -5,6 +5,7 @@ const notificationSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     message: { type: String, required: true, maxlength: 300 },
     request: { type: mongoose.Schema.Types.ObjectId, ref: 'BreakdownRequest' },
+    kind: { type: String, enum: ['open'] }, // 'open' = a new open request waiting for a provider
     isRead: { type: Boolean, default: false },
   },
   { timestamps: true }

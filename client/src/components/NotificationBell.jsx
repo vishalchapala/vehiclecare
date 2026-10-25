@@ -44,7 +44,8 @@ export default function NotificationBell() {
       await api.patch(`/notifications/${n._id}/read`).catch(() => {})
       load()
     }
-    if (n.request) navigate(`/${user.role}/requests/${n.request}`)
+    if (n.kind === 'open') navigate('/provider/open')
+    else if (n.request) navigate(`/${user.role}/requests/${n.request}`)
   }
 
   const readAll = async () => {

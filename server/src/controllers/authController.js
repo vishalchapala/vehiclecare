@@ -43,3 +43,10 @@ exports.login = asyncHandler(async (req, res) => {
 exports.me = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { user: req.user } });
 });
+
+// PATCH /api/auth/availability  (provider switches Available / Not available)
+exports.setAvailability = asyncHandler(async (req, res) => {
+  req.user.set('providerProfile.isAvailable', req.body.isAvailable === true || req.body.isAvailable === 'true');
+  await req.user.save();
+  res.json({ success: true, data: { user: req.user } });
+});

@@ -15,6 +15,7 @@ import AdminUsers from './pages/app/AdminUsers.jsx'
 import AdminVehicles from './pages/app/AdminVehicles.jsx'
 import AdminServices from './pages/app/AdminServices.jsx'
 import RequestService from './pages/app/RequestService.jsx'
+import OpenRequests from './pages/app/OpenRequests.jsx'
 
 export default function App() {
   return (
@@ -43,6 +44,7 @@ export default function App() {
       <Route path="/provider" element={<ProtectedRoute roles={['provider']} />}>
         <Route element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />
+          <Route path="open" element={<OpenRequests />} />
           <Route path="requests" element={<Requests />} />
           <Route path="requests/:id" element={<RequestDetail />} />
         </Route>

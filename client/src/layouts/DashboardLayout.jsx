@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Car, AlertTriangle, ClipboardList, Users, LogOut, Menu, X, Wrench } from 'lucide-react'
+import { LayoutDashboard, Car, AlertTriangle, ClipboardList, Users, LogOut, Menu, X, Wrench, Inbox } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import Logo from '../components/Logo.jsx'
 import NotificationBell from '../components/NotificationBell.jsx'
@@ -15,7 +15,8 @@ const navByRole = {
   ],
   provider: [
     { to: '/provider', label: 'Overview', icon: LayoutDashboard, end: true },
-    { to: '/provider/requests', label: 'Assigned Requests', icon: ClipboardList },
+    { to: '/provider/open', label: 'Open Requests', icon: Inbox },
+    { to: '/provider/requests', label: 'My Requests', icon: ClipboardList },
   ],
   admin: [
     { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },

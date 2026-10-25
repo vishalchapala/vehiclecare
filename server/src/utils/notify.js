@@ -2,11 +2,11 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 
 // Creates in-app notifications. A failure here must never break the main action, so errors are only logged.
-async function notify(userIds, message, request) {
+async function notify(userIds, message, request, kind) {
   try {
     const ids = [].concat(userIds).filter(Boolean);
     if (!ids.length) return;
-    await Notification.insertMany(ids.map((user) => ({ user, message, request })));
+    await Notification.insertMany(ids.map((user) => ({ user, message, request, kind })));
   } catch (err) {
     console.error('Notification error:', err.message);
   }

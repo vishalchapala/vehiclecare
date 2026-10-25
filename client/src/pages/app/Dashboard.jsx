@@ -48,6 +48,52 @@ function RecentRequests({ requests, base }) {
   )
 }
 
+// Provider switch: when off, automatic assignment skips this provider.
+function AvailabilityToggle() {
+  const { user, setUser } = useAuth()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const on = user.providerProfile?.isAvailable !== false
+
+  const toggle = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      const res = await api.patch('/auth/availability', { isAvailable: !on })
+      setUser(res.data.data.user)
+    } catch (err) {
+      setError(errorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="font-semibold text-ink">{on ? 'You are available' : 'You are not available'}</p>
+          <p className="text-sm text-slate-600">
+            {on ? 'New requests can be assigned to you automatically.' : 'You will not get automatic assignments. You can still accept open requests.'}
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          aria-label="Available for new requests"
+          onClick={toggle}
+          disabled={busy}
+          className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60 ${on ? 'bg-brand-600' : 'bg-slate-300'}`}
+        >
+          <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${on ? 'left-[22px]' : 'left-0.5'}`} />
+        </button>
+      </div>
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+    </div>
+  )
+}
+
 // Admin: real counts from the database.
 function AdminOverview() {
   const [stats, setStats] = useState(null)
@@ -88,7 +134,7 @@ function AdminOverview() {
         ))}
       </div>
       <div className="mt-6 flex flex-wrap gap-3">
-        <Button to="/admin/requests">Manage requests</Button>
+        <Button to="/admin/requests">View requests</Button>
         <Button to="/admin/users" variant="secondary">Manage users</Button>
       </div>
     </>
@@ -121,6 +167,7 @@ function PersonalOverview({ role }) {
 
   return (
     <>
+      {role === 'provider' && <div className="mb-6"><AvailabilityToggle /></div>}
       <div className="grid gap-4 sm:grid-cols-3">
         {role === 'customer' && <StatCard label="My vehicles" value={vehicleCount} />}
         <StatCard label={role === 'customer' ? 'Open requests' : 'Active assignments'} value={open} />

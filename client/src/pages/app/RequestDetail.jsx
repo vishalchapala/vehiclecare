@@ -8,7 +8,6 @@ import Badge from '../../components/ui/Badge.jsx'
 import StatusBadge from '../../components/ui/StatusBadge.jsx'
 import Button from '../../components/ui/Button.jsx'
 import Input from '../../components/ui/Input.jsx'
-import Select from '../../components/ui/Select.jsx'
 import Textarea from '../../components/ui/Textarea.jsx'
 import Alert from '../../components/ui/Alert.jsx'
 import PageLoader from '../../components/ui/PageLoader.jsx'
@@ -30,8 +29,6 @@ export default function RequestDetail() {
   const { id } = useParams()
   const { user } = useAuth()
   const [request, setRequest] = useState(null)
-  const [providers, setProviders] = useState([])
-  const [providerId, setProviderId] = useState('')
   const [work, setWork] = useState({ notes: '', estimatedCost: '', finalCost: '' })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -47,16 +44,6 @@ export default function RequestDetail() {
   )
 
   useEffect(() => { load() }, [load])
-
-  // Admin needs the list of approved providers to assign one.
-  useEffect(() => {
-    if (user.role !== 'admin') return
-    api.get('/admin/users?role=provider&limit=50')
-      .then((r) => {
-        setProviders(r.data.data.users.filter((u) => u.isActive))
-      })
-      .catch(() => {})
-  }, [user.role])
 
   const run = async (call, message) => {
     setBusy(true)
@@ -78,6 +65,10 @@ export default function RequestDetail() {
 
   const cancel = () => window.confirm('Cancel this request?') && changeStatus('Cancelled')
 
+  const reject = () =>
+    window.confirm('Reject this request? It will be offered to another provider.') &&
+    changeStatus('Reported', { note: 'Rejected by provider' })
+
   const advance = (status) => {
     const body = {}
     if (work.notes) body.notes = work.notes
@@ -86,15 +77,11 @@ export default function RequestDetail() {
     return changeStatus(status, body)
   }
 
-  const assign = () =>
-    run(() => api.patch(`/requests/${id}/assign`, { providerId }), 'Provider assigned.')
-
   if (!request) return error ? <Alert>{error}</Alert> : <PageLoader />
 
   const r = request
   const isProvider = user.role === 'provider'
-  const isAdmin = user.role === 'admin'
-  const canCancel = (user.role === 'customer' || isAdmin) && CANCELLABLE.includes(r.status)
+  const canCancel = user.role === 'customer' && CANCELLABLE.includes(r.status)
   const next = NEXT_STEP[r.status]
 
   return (
@@ -113,6 +100,11 @@ export default function RequestDetail() {
       <div className="mb-6 space-y-3">
         <Alert>{error}</Alert>
         <Alert type="success">{success}</Alert>
+        {r.status === 'Reported' && user.role !== 'provider' && (
+          <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
+            No provider is available right now, so this request is open. The first available provider to accept it will take the job.
+          </p>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
@@ -156,38 +148,13 @@ export default function RequestDetail() {
             </section>
           )}
 
-          {isAdmin && r.status === 'Reported' && (
-            <section className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-4 text-lg font-semibold text-ink">Assign a provider</h2>
-              {providers.length === 0 ? (
-                <p className="text-sm text-slate-600">No providers have registered yet.</p>
-              ) : (
-                <div className="flex flex-wrap items-end gap-3">
-                  <Select id="provider" label="Providers" value={providerId} onChange={(e) => setProviderId(e.target.value)} className="min-w-56 flex-1">
-                    <option value="">Select a provider</option>
-                    {providers.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
-                  </Select>
-                  <Button onClick={assign} disabled={!providerId} loading={busy}>Assign</Button>
-                </div>
-              )}
-            </section>
-          )}
-
-          {isAdmin && r.status === 'Assigned' && (
-            <section className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-2 text-lg font-semibold text-ink">Change provider</h2>
-              <p className="mb-4 text-sm text-slate-600">Unassigning sends the request back to Reported so you can pick someone else.</p>
-              <Button variant="secondary" onClick={() => changeStatus('Reported')} loading={busy}>Unassign provider</Button>
-            </section>
-          )}
-
           {isProvider && r.status === 'Assigned' && (
             <section className="rounded-xl border border-slate-200 bg-white p-6">
               <h2 className="mb-2 text-lg font-semibold text-ink">New assignment</h2>
-              <p className="mb-4 text-sm text-slate-600">Accept this request, or reject it to send it back to the admin.</p>
+              <p className="mb-4 text-sm text-slate-600">Accept this request, or reject it and it will be offered to another provider.</p>
               <div className="flex gap-3">
                 <Button onClick={() => changeStatus('Accepted')} loading={busy}>Accept</Button>
-                <Button variant="secondary" onClick={() => window.confirm('Reject this request?') && changeStatus('Reported')} disabled={busy}>Reject</Button>
+                <Button variant="secondary" onClick={reject} disabled={busy}>Reject</Button>
               </div>
             </section>
           )}
@@ -218,7 +185,7 @@ export default function RequestDetail() {
               <li key={i} className="relative border-l-2 border-slate-200 pl-5">
                 <span className="absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-brand-600" aria-hidden="true" />
                 <p className="font-semibold text-ink">{h.status}</p>
-                <p className="text-sm text-slate-500">{formatDate(h.at)}{h.by ? ` · ${h.by.name}` : ''}</p>
+                <p className="text-sm text-slate-500">{formatDate(h.at)}{h.by ? ` · ${h.by.name}` : h.status === 'Assigned' ? ' · System' : ''}</p>
                 {h.note && <p className="mt-1 text-sm text-slate-600">{h.note}</p>}
               </li>
             ))}

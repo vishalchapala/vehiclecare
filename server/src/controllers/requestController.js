@@ -1,10 +1,10 @@
 const BreakdownRequest = require('../models/BreakdownRequest');
 const Vehicle = require('../models/Vehicle');
-const User = require('../models/User');
 const ServiceCategory = require('../models/ServiceCategory');
 const { AppError, asyncHandler, getPagination } = require('../utils/helpers');
 const { HIGH_PRIORITY, TRANSITIONS } = require('../utils/statusRules');
 const { notify, notifyAdmins } = require('../utils/notify');
+const { autoAssign, notifyOpenRequest, label } = require('../utils/dispatch');
 
 const populateAll = (q) =>
   q
@@ -13,6 +13,7 @@ const populateAll = (q) =>
     .populate('provider', 'name phone');
 
 // Returns the request only if this user is allowed to see it. Otherwise 404 (we don't reveal it exists).
+// Admins can see every request (view only).
 async function findAccessible(id, user) {
   const filter = { _id: id };
   if (user.role === 'customer') filter.customer = user._id;
@@ -21,8 +22,6 @@ async function findAccessible(id, user) {
   if (!request) throw new AppError('Request not found', 404);
   return request;
 }
-
-const label = (r) => (r.type === 'maintenance' ? `service "${r.category}"` : `breakdown "${r.category}"`);
 
 // POST /api/requests  (customer) - breakdown or maintenance
 exports.create = asyncHandler(async (req, res) => {
@@ -59,23 +58,44 @@ exports.create = asyncHandler(async (req, res) => {
   const request = await BreakdownRequest.create(data);
   await notifyAdmins(`New ${label(request)} from ${req.user.name}`, request._id);
 
-  res.status(201).json({ success: true, data: { request } });
+  // Try automatic assignment. If nobody is available, the request becomes an open request.
+  const assigned = await autoAssign(request);
+  if (!assigned) await notifyOpenRequest(request);
+
+  res.status(201).json({ success: true, data: { request, autoAssigned: !!assigned } });
 });
 
-// GET /api/requests  (each role sees only its own records)
+// GET /api/requests  (each role sees only its own records; admin sees all)
 exports.list = asyncHandler(async (req, res) => {
   const filter = {};
+  const openScope = req.user.role === 'provider' && req.query.scope === 'open';
+
   if (req.user.role === 'customer') filter.customer = req.user._id;
-  if (req.user.role === 'provider') filter.provider = req.user._id;
   if (req.query.status) filter.status = req.query.status;
   if (req.query.type) filter.type = req.query.type;
 
-  const { page, limit, skip } = getPagination(req.query);
-  const [requests, total] = await Promise.all([
-    populateAll(BreakdownRequest.find(filter).sort('-createdAt').skip(skip).limit(limit)),
-    BreakdownRequest.countDocuments(filter),
-  ]);
+  if (req.user.role === 'provider') {
+    if (openScope) {
+      // Open requests: nobody has them yet.
+      filter.status = 'Reported';
+      filter.provider = null;
+    } else {
+      filter.provider = req.user._id;
+    }
+  }
 
+  const { page, limit, skip } = getPagination(req.query);
+  let query = BreakdownRequest.find(filter).sort('-createdAt').skip(skip).limit(limit);
+  if (openScope) {
+    // Customer contact details stay hidden until a provider accepts the job.
+    query = query
+      .select('type category vehicle address description priority preferredDate createdAt status')
+      .populate('vehicle', 'type make model registrationNumber');
+  } else {
+    query = populateAll(query);
+  }
+
+  const [requests, total] = await Promise.all([query, BreakdownRequest.countDocuments(filter)]);
   res.json({
     success: true,
     data: { requests, pagination: { page, limit, total, pages: Math.ceil(total / limit) } },
@@ -89,27 +109,24 @@ exports.getOne = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { request } });
 });
 
-// PATCH /api/requests/:id/assign  (admin)
-exports.assign = asyncHandler(async (req, res) => {
-  const request = await BreakdownRequest.findById(req.params.id);
-  if (!request) throw new AppError('Request not found', 404);
-  if (request.status !== 'Reported') throw new AppError('Only requests with status Reported can be assigned', 400);
+// PATCH /api/requests/:id/claim  (provider takes an open request)
+exports.claim = asyncHandler(async (req, res) => {
+  // One atomic step: only one provider can win if two click at the same moment.
+  const request = await BreakdownRequest.findOneAndUpdate(
+    { _id: req.params.id, status: 'Reported', provider: null },
+    {
+      $set: { provider: req.user._id, status: 'Accepted' },
+      $push: { statusHistory: { status: 'Accepted', by: req.user._id, note: 'Accepted from open requests', at: new Date() } },
+    },
+    { new: true }
+  );
+  if (!request) throw new AppError('This request is no longer available', 409);
 
-  const provider = await User.findOne({ _id: req.body.providerId, role: 'provider', isActive: true });
-  if (!provider) throw new AppError('Provider not found or disabled', 400);
-
-  request.provider = provider._id;
-  request.status = 'Assigned';
-  request.statusHistory.push({ status: 'Assigned', by: req.user._id, note: `Assigned to ${provider.name}` });
-  await request.save();
-
-  await notify(provider._id, `You were assigned a new ${label(request)}`, request._id);
-  await notify(request.customer, `${provider.name} was assigned to your ${label(request)}`, request._id);
-
+  await notify(request.customer, `${req.user.name} accepted your ${label(request)}`, request._id);
   res.json({ success: true, data: { request } });
 });
 
-// PATCH /api/requests/:id/status  (customer, provider or admin, depending on the transition)
+// PATCH /api/requests/:id/status  (customer or provider, depending on the transition)
 exports.updateStatus = asyncHandler(async (req, res) => {
   const { status, note, notes, estimatedCost, finalCost } = req.body;
   const role = req.user.role;
@@ -122,7 +139,11 @@ exports.updateStatus = asyncHandler(async (req, res) => {
   }
 
   const previousProvider = request.provider;
-  if (status === 'Reported') request.provider = undefined; // reject or unassign: back to the pool
+  const isReject = role === 'provider' && status === 'Reported';
+  if (isReject) {
+    request.rejectedBy.push(req.user._id);
+    request.provider = undefined;
+  }
 
   if (role === 'provider') {
     if (notes !== undefined) request.providerNotes = notes;
@@ -131,21 +152,20 @@ exports.updateStatus = asyncHandler(async (req, res) => {
   }
 
   request.status = status;
-  request.statusHistory.push({ status, by: req.user._id, note });
+  request.statusHistory.push({ status, by: req.user._id, note: note || (isReject ? 'Rejected by provider' : undefined) });
   await request.save();
 
-  // Tell the people affected by this change.
-  if (role === 'provider' && status === 'Reported') {
-    await notifyAdmins(`${req.user.name} rejected the ${label(request)}. It needs a new provider.`, request._id);
+  if (isReject) {
+    // Try the next available provider. If nobody is left, it becomes an open request.
+    const next = await autoAssign(request);
+    if (!next) {
+      await notifyOpenRequest(request);
+      await notify(request.customer, `Your ${label(request)} is open to all available providers`, request._id);
+    }
   } else if (role === 'provider') {
     await notify(request.customer, `Your ${label(request)} is now ${status}`, request._id);
-  } else if (role === 'admin' && status === 'Reported') {
-    await notify(previousProvider, `You were removed from the ${label(request)}`, request._id);
-    await notify(request.customer, `Your ${label(request)} is being reassigned`, request._id);
   } else if (status === 'Cancelled') {
-    if (role === 'customer') await notifyAdmins(`${req.user.name} cancelled the ${label(request)}`, request._id);
-    if (role === 'admin') await notify(request.customer, `Your ${label(request)} was cancelled by the admin`, request._id);
-    await notify(previousProvider, `The ${label(request)} was cancelled`, request._id);
+    await notify(previousProvider, `The ${label(request)} was cancelled by the customer`, request._id);
   }
 
   res.json({ success: true, data: { request } });

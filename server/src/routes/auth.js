@@ -2,8 +2,8 @@ const router = require('express').Router();
 const { body } = require('express-validator');
 const rateLimit = require('express-rate-limit');
 const validate = require('../middleware/validate');
-const { protect } = require('../middleware/auth');
-const { register, login, me } = require('../controllers/authController');
+const { protect, authorize } = require('../middleware/auth');
+const { register, login, me, setAvailability } = require('../controllers/authController');
 
 // Slows down password-guessing attacks.
 const authLimiter = rateLimit({
@@ -43,5 +43,13 @@ router.post(
 );
 
 router.get('/me', protect, me);
+router.patch(
+  '/availability',
+  protect,
+  authorize('provider'),
+  body('isAvailable').isBoolean().withMessage('isAvailable must be true or false'),
+  validate,
+  setAvailability
+);
 
 module.exports = router;

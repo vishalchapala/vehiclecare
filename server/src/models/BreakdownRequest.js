@@ -28,6 +28,7 @@ const requestSchema = new mongoose.Schema(
     priority: { type: String, enum: ['Normal', 'High'], default: 'Normal' },
     status: { type: String, enum: STATUSES, default: 'Reported', index: true },
     provider: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
+    rejectedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // providers who rejected it
     providerNotes: { type: String, trim: true, maxlength: 500 },
     estimatedCost: { type: Number, min: 0 },
     finalCost: { type: Number, min: 0 },

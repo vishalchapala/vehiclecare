@@ -45,6 +45,7 @@ router.get(
   [
     query('status').optional().isIn(STATUSES).withMessage('Invalid status'),
     query('type').optional().isIn(['breakdown', 'maintenance']).withMessage('Invalid type'),
+    query('scope').optional().isIn(['open']).withMessage('Invalid scope'),
   ],
   validate,
   c.list
@@ -52,16 +53,11 @@ router.get(
 
 router.get('/:id', id, validate, c.getOne);
 
-router.patch(
-  '/:id/assign',
-  authorize('admin'),
-  [id, body('providerId').isMongoId().withMessage('Select a provider')],
-  validate,
-  c.assign
-);
+router.patch('/:id/claim', authorize('provider'), id, validate, c.claim);
 
 router.patch(
   '/:id/status',
+  authorize('customer', 'provider'),
   [
     id,
     body('status').isIn(STATUSES).withMessage('Invalid status'),

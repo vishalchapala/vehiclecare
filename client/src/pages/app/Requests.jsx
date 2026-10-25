@@ -12,7 +12,7 @@ import Alert from '../../components/ui/Alert.jsx'
 import PageLoader from '../../components/ui/PageLoader.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 
-const titles = { customer: 'My Requests', provider: 'Assigned Requests', admin: 'All Requests' }
+const titles = { customer: 'My Requests', provider: 'My Requests', admin: 'All Requests' }
 
 export default function Requests() {
   const { user } = useAuth()
