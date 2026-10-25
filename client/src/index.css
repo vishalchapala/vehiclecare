@@ -39,3 +39,10 @@ body {
   html { scroll-behavior: auto; }
   * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
+
+/* Receipt printing: hide the menus and keep only the receipt */
+@media print {
+  .no-print { display: none !important; }
+  .print-flush { padding-left: 0 !important; }
+  .print-plain { border: 0 !important; padding: 0 !important; }
+}

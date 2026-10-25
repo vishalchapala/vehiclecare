@@ -3,7 +3,7 @@ const { body } = require('express-validator');
 const rateLimit = require('express-rate-limit');
 const validate = require('../middleware/validate');
 const { protect, authorize } = require('../middleware/auth');
-const { register, login, me, setAvailability } = require('../controllers/authController');
+const { register, login, me, setAvailability, updateProfile, changePassword } = require('../controllers/authController');
 
 // Slows down password-guessing attacks.
 const authLimiter = rateLimit({
@@ -43,6 +43,30 @@ router.post(
 );
 
 router.get('/me', protect, me);
+router.patch(
+  '/profile',
+  protect,
+  [
+    body('name').trim().isLength({ min: 2, max: 80 }).withMessage('Name must be 2 to 80 characters'),
+    body('phone').trim().matches(/^[0-9]{10}$/).withMessage('Phone must be a 10-digit number'),
+  ],
+  validate,
+  updateProfile
+);
+router.patch(
+  '/password',
+  protect,
+  authLimiter,
+  [
+    body('currentPassword').notEmpty().withMessage('Enter your current password'),
+    body('newPassword')
+      .isLength({ min: 8, max: 72 }).withMessage('New password must be 8 to 72 characters')
+      .matches(/[A-Za-z]/).withMessage('New password needs at least one letter')
+      .matches(/[0-9]/).withMessage('New password needs at least one number'),
+  ],
+  validate,
+  changePassword
+);
 router.patch(
   '/availability',
   protect,

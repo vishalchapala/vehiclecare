@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Star } from 'lucide-react'
 import api, { errorMessage } from '../../services/api.js'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { formatDate } from '../../utils/constants.js'
@@ -25,10 +25,73 @@ function Detail({ label, children }) {
   )
 }
 
+function Stars({ value, onPick }) {
+  return (
+    <div className="flex gap-1" role={onPick ? 'radiogroup' : undefined} aria-label="Rating">
+      {[1, 2, 3, 4, 5].map((n) => {
+        const icon = <Star className={`h-6 w-6 ${n <= value ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} aria-hidden="true" />
+        return onPick ? (
+          <button key={n} type="button" onClick={() => onPick(n)} aria-label={`${n} star${n > 1 ? 's' : ''}`}
+            className="rounded p-0.5 hover:scale-110">{icon}</button>
+        ) : (
+          <span key={n}>{icon}</span>
+        )
+      })}
+    </div>
+  )
+}
+
+// Rating shown after the service is resolved. Customers can rate once.
+function ReviewSection({ review, canReview, requestId, onDone }) {
+  const [rating, setRating] = useState(0)
+  const [comment, setComment] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  if (review) {
+    return (
+      <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <h2 className="mb-3 text-lg font-semibold text-ink">Customer rating</h2>
+        <Stars value={review.rating} />
+        {review.comment && <p className="mt-3 text-slate-700">{review.comment}</p>}
+      </section>
+    )
+  }
+  if (!canReview) return null
+
+  const submit = async () => {
+    setError('')
+    if (!rating) return setError('Choose a star rating first.')
+    setBusy(true)
+    try {
+      await api.post(`/requests/${requestId}/review`, { rating, comment })
+      await onDone()
+    } catch (err) {
+      setError(errorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <h2 className="mb-1 text-lg font-semibold text-ink">Rate this service</h2>
+      <p className="mb-4 text-sm text-slate-600">Your rating helps other customers and the provider.</p>
+      <Stars value={rating} onPick={setRating} />
+      <Textarea id="comment" rows={3} label="Comment (optional)" className="mt-4" value={comment} onChange={(e) => setComment(e.target.value)} />
+      <div className="mt-4 space-y-3">
+        <Alert>{error}</Alert>
+        <Button onClick={submit} loading={busy}>Submit rating</Button>
+      </div>
+    </section>
+  )
+}
+
 export default function RequestDetail() {
   const { id } = useParams()
   const { user } = useAuth()
   const [request, setRequest] = useState(null)
+  const [review, setReview] = useState(null)
   const [work, setWork] = useState({ notes: '', estimatedCost: '', finalCost: '' })
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -38,6 +101,7 @@ export default function RequestDetail() {
     () => api.get(`/requests/${id}`).then((r) => {
       const req = r.data.data.request
       setRequest(req)
+      setReview(r.data.data.review || null)
       setWork({ notes: req.providerNotes || '', estimatedCost: req.estimatedCost ?? '', finalCost: req.finalCost ?? '' })
     }).catch((e) => setError(errorMessage(e))),
     [id]
@@ -138,6 +202,17 @@ export default function RequestDetail() {
               <p className="mt-0.5 text-ink">{r.providerNotes || '-'}</p>
             </div>
           </section>
+
+          {r.status === 'Resolved' && (
+            <>
+              <ReviewSection review={review} canReview={user.role === 'customer'} requestId={id} onDone={load} />
+              <section className="rounded-xl border border-slate-200 bg-white p-6">
+                <h2 className="mb-2 text-lg font-semibold text-ink">Receipt</h2>
+                <p className="mb-4 text-sm text-slate-600">Open a printable receipt. You can save it as a PDF from the print window.</p>
+                <Button to={`/${user.role}/requests/${id}/receipt`} variant="secondary">View receipt</Button>
+              </section>
+            </>
+          )}
 
           {/* Actions depend on the role AND the current status. The server checks them again. */}
           {canCancel && (

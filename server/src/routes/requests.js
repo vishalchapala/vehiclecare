@@ -3,6 +3,7 @@ const { body, param, query } = require('express-validator');
 const validate = require('../middleware/validate');
 const { protect, authorize } = require('../middleware/auth');
 const c = require('../controllers/requestController');
+const reviews = require('../controllers/reviewController');
 const { CATEGORIES, STATUSES } = require('../utils/statusRules');
 
 const id = param('id').isMongoId().withMessage('Invalid ID');
@@ -52,6 +53,18 @@ router.get(
 );
 
 router.get('/:id', id, validate, c.getOne);
+
+router.post(
+  '/:id/review',
+  authorize('customer'),
+  [
+    id,
+    body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be from 1 to 5'),
+    body('comment').optional().isLength({ max: 300 }).withMessage('Comment can be at most 300 characters'),
+  ],
+  validate,
+  reviews.create
+);
 
 router.patch('/:id/claim', authorize('provider'), id, validate, c.claim);
 

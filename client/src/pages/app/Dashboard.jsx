@@ -145,16 +145,19 @@ function AdminOverview() {
 function PersonalOverview({ role }) {
   const [requests, setRequests] = useState(null)
   const [vehicleCount, setVehicleCount] = useState(null)
+  const [rating, setRating] = useState(null)
   const [error, setError] = useState('')
   const base = `/${role}`
 
   useEffect(() => {
     const calls = [api.get('/requests?limit=50')]
     if (role === 'customer') calls.push(api.get('/vehicles'))
+    if (role === 'provider') calls.push(api.get('/reviews/summary'))
     Promise.all(calls)
       .then(([req, veh]) => {
         setRequests(req.data.data.requests)
-        if (veh) setVehicleCount(veh.data.data.vehicles.length)
+        if (veh && role === 'customer') setVehicleCount(veh.data.data.vehicles.length)
+        if (veh && role === 'provider') setRating(veh.data.data)
       })
       .catch((e) => setError(errorMessage(e)))
   }, [role])
@@ -172,6 +175,9 @@ function PersonalOverview({ role }) {
         {role === 'customer' && <StatCard label="My vehicles" value={vehicleCount} />}
         <StatCard label={role === 'customer' ? 'Open requests' : 'Active assignments'} value={open} />
         <StatCard label="Completed services" value={done} />
+        {role === 'provider' && (
+          <StatCard label="Average rating" value={rating && rating.count ? `${rating.average} / 5` : 'No ratings yet'} />
+        )}
       </div>
       <div className="mb-4 mt-10 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-ink">Recent requests</h2>

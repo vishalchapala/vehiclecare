@@ -50,3 +50,22 @@ exports.setAvailability = asyncHandler(async (req, res) => {
   await req.user.save();
   res.json({ success: true, data: { user: req.user } });
 });
+
+// PATCH /api/auth/profile  (change own name and phone)
+exports.updateProfile = asyncHandler(async (req, res) => {
+  req.user.name = req.body.name;
+  req.user.phone = req.body.phone;
+  await req.user.save();
+  res.json({ success: true, data: { user: req.user } });
+});
+
+// PATCH /api/auth/password  (needs the current password)
+exports.changePassword = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select('+password');
+  if (!(await user.matchPassword(req.body.currentPassword))) {
+    throw new AppError('Current password is incorrect', 400);
+  }
+  user.password = req.body.newPassword; // hashed automatically before saving
+  await user.save();
+  res.json({ success: true, message: 'Password changed successfully' });
+});

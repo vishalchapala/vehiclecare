@@ -3,11 +3,13 @@ const { body, param } = require('express-validator');
 const validate = require('../middleware/validate');
 const { protect, authorize } = require('../middleware/auth');
 const c = require('../controllers/adminController');
+const contact = require('../controllers/contactController');
 
 router.use(protect, authorize('admin'));
 
 router.get('/users', c.listUsers);
 router.get('/vehicles', c.listVehicles);
+router.get('/messages', contact.list);
 router.get('/stats', c.stats);
 router.patch(
   '/users/:id',

@@ -1,6 +1,7 @@
 const BreakdownRequest = require('../models/BreakdownRequest');
 const Vehicle = require('../models/Vehicle');
 const ServiceCategory = require('../models/ServiceCategory');
+const Review = require('../models/Review');
 const { AppError, asyncHandler, getPagination } = require('../utils/helpers');
 const { HIGH_PRIORITY, TRANSITIONS } = require('../utils/statusRules');
 const { notify, notifyAdmins } = require('../utils/notify');
@@ -106,7 +107,8 @@ exports.list = asyncHandler(async (req, res) => {
 exports.getOne = asyncHandler(async (req, res) => {
   await findAccessible(req.params.id, req.user);
   const request = await populateAll(BreakdownRequest.findById(req.params.id)).populate('statusHistory.by', 'name role');
-  res.json({ success: true, data: { request } });
+  const review = await Review.findOne({ request: request._id }).populate('customer', 'name');
+  res.json({ success: true, data: { request, review } });
 });
 
 // PATCH /api/requests/:id/claim  (provider takes an open request)

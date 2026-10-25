@@ -22,6 +22,8 @@ app.use('/api/requests', require('./routes/requests'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/services', require('./routes/services'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/contact', require('./routes/contact'));
 
 app.use(notFound);
 app.use(errorHandler);

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Car, AlertTriangle, ClipboardList, Users, LogOut, Menu, X, Wrench, Inbox } from 'lucide-react'
+import { LayoutDashboard, Car, AlertTriangle, ClipboardList, Users, LogOut, Menu, X, Wrench, Inbox, UserCircle, Mail } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import Logo from '../components/Logo.jsx'
 import NotificationBell from '../components/NotificationBell.jsx'
@@ -12,11 +12,13 @@ const navByRole = {
     { to: '/customer/report', label: 'Report Breakdown', icon: AlertTriangle },
     { to: '/customer/service', label: 'Request Service', icon: Wrench },
     { to: '/customer/requests', label: 'My Requests', icon: ClipboardList },
+    { to: '/customer/profile', label: 'Profile', icon: UserCircle },
   ],
   provider: [
     { to: '/provider', label: 'Overview', icon: LayoutDashboard, end: true },
     { to: '/provider/open', label: 'Open Requests', icon: Inbox },
     { to: '/provider/requests', label: 'My Requests', icon: ClipboardList },
+    { to: '/provider/profile', label: 'Profile', icon: UserCircle },
   ],
   admin: [
     { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -24,6 +26,8 @@ const navByRole = {
     { to: '/admin/users', label: 'Users', icon: Users },
     { to: '/admin/vehicles', label: 'Vehicles', icon: Car },
     { to: '/admin/services', label: 'Services', icon: Wrench },
+    { to: '/admin/messages', label: 'Messages', icon: Mail },
+    { to: '/admin/profile', label: 'Profile', icon: UserCircle },
   ],
 }
 
@@ -71,7 +75,7 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 lg:block">{sidebar}</aside>
+      <aside className="no-print fixed inset-y-0 left-0 z-30 hidden w-64 lg:block">{sidebar}</aside>
 
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
@@ -80,8 +84,8 @@ export default function DashboardLayout() {
         </div>
       )}
 
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-8">
+      <div className="lg:pl-64 print-flush">
+        <header className="no-print sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-8">
           <button
             type="button"
             className="rounded-lg p-2 text-ink hover:bg-slate-100 lg:hidden"

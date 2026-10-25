@@ -10,6 +10,8 @@ import { useAuth } from '../context/AuthContext.jsx'
 const navLinks = [
   { label: 'Services', to: '/#services' },
   { label: 'How it works', to: '/#how-it-works' },
+  { label: 'About', to: '/about' },
+  { label: 'Contact', to: '/contact' },
 ]
 
 // React Router does not scroll to #sections on its own, so we do it here.

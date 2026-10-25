@@ -16,12 +16,19 @@ import AdminVehicles from './pages/app/AdminVehicles.jsx'
 import AdminServices from './pages/app/AdminServices.jsx'
 import RequestService from './pages/app/RequestService.jsx'
 import OpenRequests from './pages/app/OpenRequests.jsx'
+import Receipt from './pages/app/Receipt.jsx'
+import Profile from './pages/app/Profile.jsx'
+import AdminMessages from './pages/app/AdminMessages.jsx'
+import About from './pages/About.jsx'
+import Contact from './pages/Contact.jsx'
 
 export default function App() {
   return (
     <Routes>
       <Route element={<PublicLayout />}>
         <Route index element={<Landing />} />
+        <Route path="about" element={<About />} />
+        <Route path="contact" element={<Contact />} />
         <Route path="*" element={<NotFound />} />
       </Route>
 
@@ -37,6 +44,8 @@ export default function App() {
           <Route path="service" element={<RequestService />} />
           <Route path="requests" element={<Requests />} />
           <Route path="requests/:id" element={<RequestDetail />} />
+          <Route path="requests/:id/receipt" element={<Receipt />} />
+          <Route path="profile" element={<Profile />} />
         </Route>
       </Route>
 
@@ -47,6 +56,8 @@ export default function App() {
           <Route path="open" element={<OpenRequests />} />
           <Route path="requests" element={<Requests />} />
           <Route path="requests/:id" element={<RequestDetail />} />
+          <Route path="requests/:id/receipt" element={<Receipt />} />
+          <Route path="profile" element={<Profile />} />
         </Route>
       </Route>
 
@@ -56,6 +67,9 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="requests" element={<Requests />} />
           <Route path="requests/:id" element={<RequestDetail />} />
+          <Route path="requests/:id/receipt" element={<Receipt />} />
+          <Route path="profile" element={<Profile />} />
+          <Route path="messages" element={<AdminMessages />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="vehicles" element={<AdminVehicles />} />
           <Route path="services" element={<AdminServices />} />
