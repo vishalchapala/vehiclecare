@@ -4,6 +4,7 @@ import AuthShell from '../components/auth/AuthShell.jsx'
 import Input from '../components/ui/Input.jsx'
 import Button from '../components/ui/Button.jsx'
 import Alert from '../components/ui/Alert.jsx'
+import SlowHint from '../components/ui/SlowHint.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { errorMessage } from '../services/api.js'
 import { validateName, validateEmail, validatePhone, validatePassword } from '../utils/validators.js'
@@ -94,6 +95,7 @@ export default function Register() {
         <Input id="confirm" name="confirm" type="password" label="Confirm password" autoComplete="new-password"
           value={form.confirm} onChange={update} error={errors.confirm} />
         <Alert>{serverError}</Alert>
+        <SlowHint loading={loading} />
         <Button type="submit" size="lg" className="w-full" loading={loading}>Create account</Button>
       </form>
     </AuthShell>

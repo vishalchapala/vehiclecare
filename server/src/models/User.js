@@ -25,7 +25,7 @@ const userSchema = new mongoose.Schema(
 // Hash the password before saving. Plain text passwords are never stored.
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
-  this.password = await bcrypt.hash(this.password, 12);
+  this.password = await bcrypt.hash(this.password, 10); // cost 10: still strong, about 4x faster than 12 on a small server
 });
 
 userSchema.methods.matchPassword = function (plain) {
