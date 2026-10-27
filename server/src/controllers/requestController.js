@@ -118,6 +118,7 @@ exports.claim = asyncHandler(async (req, res) => {
     { _id: req.params.id, status: 'Reported', provider: null },
     {
       $set: { provider: req.user._id, status: 'Accepted' },
+      $unset: { distanceKm: '', etaMinutes: '' },
       $push: { statusHistory: { status: 'Accepted', by: req.user._id, note: 'Accepted from open requests', at: new Date() } },
     },
     { new: true }
@@ -145,6 +146,8 @@ exports.updateStatus = asyncHandler(async (req, res) => {
   if (isReject) {
     request.rejectedBy.push(req.user._id);
     request.provider = undefined;
+    request.distanceKm = undefined;
+    request.etaMinutes = undefined;
   }
 
   if (role === 'provider') {

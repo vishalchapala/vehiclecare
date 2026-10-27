@@ -11,7 +11,7 @@ from typing import List, Optional
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from dispatch_logic import rank_providers
+from dispatch_logic import build_assignment, rank_providers
 
 app = FastAPI(title="VehicleCare Dispatch Service", version="1.0.0")
 
@@ -25,6 +25,13 @@ class Provider(BaseModel):
 
 
 class RankRequest(BaseModel):
+    lat: Optional[float] = Field(None, ge=-90, le=90)
+    lng: Optional[float] = Field(None, ge=-180, le=180)
+    providers: List[Provider] = Field(..., max_length=500)
+
+
+class AssignmentRequest(BaseModel):
+    request_id: str = Field(..., max_length=64)
     lat: Optional[float] = Field(None, ge=-90, le=90)
     lng: Optional[float] = Field(None, ge=-180, le=180)
     providers: List[Provider] = Field(..., max_length=500)
@@ -48,3 +55,10 @@ def rank(body: RankRequest, x_internal_key: Optional[str] = Header(default=None)
     require_key(x_internal_key)
     ranking = rank_providers(body.lat, body.lng, [p.model_dump() for p in body.providers])
     return {"success": True, "ranking": ranking}
+
+
+@app.post("/assignment")
+def assignment(body: AssignmentRequest, x_internal_key: Optional[str] = Header(default=None)):
+    """Returns the best provider for one request as: requestId, status, provider, distanceKm, etaMinutes."""
+    require_key(x_internal_key)
+    return build_assignment(body.request_id, body.lat, body.lng, [p.model_dump() for p in body.providers])

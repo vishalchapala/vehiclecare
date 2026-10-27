@@ -36,7 +36,7 @@ async function rankWithPython(request, providers, load) {
     const data = await res.json();
     const first = data.ranking && data.ranking[0];
     const provider = first && providers.find((p) => String(p._id) === first.id);
-    return provider ? { provider, distanceKm: first.distance_km } : null;
+    return provider ? { provider, distanceKm: first.distance_km, etaMinutes: first.eta_minutes } : null;
   } catch (err) {
     console.warn('Dispatch service unavailable, using the fallback rule:', err.message);
     return null;
@@ -63,7 +63,12 @@ async function pickProvider(request) {
 
   const ranked = await rankWithPython(request, providers, load);
   if (ranked && ranked.distanceKm != null) {
-    return { provider: ranked.provider, method: `nearest available, ${ranked.distanceKm} km away` };
+    return {
+      provider: ranked.provider,
+      method: `nearest available, ${ranked.distanceKm} km away, about ${ranked.etaMinutes} min`,
+      distanceKm: ranked.distanceKm,
+      etaMinutes: ranked.etaMinutes,
+    };
   }
 
   providers.sort((a, b) => (load.get(String(a._id)) || 0) - (load.get(String(b._id)) || 0));
@@ -74,9 +79,11 @@ async function pickProvider(request) {
 async function autoAssign(request) {
   const choice = await pickProvider(request);
   if (!choice) return null;
-  const { provider, method } = choice;
+  const { provider, method, distanceKm, etaMinutes } = choice;
 
   request.provider = provider._id;
+  request.distanceKm = distanceKm; // undefined when the fallback rule was used
+  request.etaMinutes = etaMinutes;
   request.status = 'Assigned';
   request.statusHistory.push({ status: 'Assigned', note: `Automatically assigned to ${provider.name} (${method})` });
   await request.save();

@@ -185,6 +185,11 @@ export default function RequestDetail() {
               {r.latitude != null && <Detail label="Coordinates">{r.latitude.toFixed(5)}, {r.longitude.toFixed(5)}</Detail>}
               {user.role !== 'customer' && <Detail label="Customer">{r.customer?.name}</Detail>}
               <Detail label="Service provider">{r.provider ? `${r.provider.name} (${r.provider.phone})` : 'Not assigned yet'}</Detail>
+              {r.provider && r.distanceKm != null && (
+                <Detail label="Provider distance and estimated travel time">
+                  {r.distanceKm} km away, about {r.etaMinutes} min (estimate)
+                </Detail>
+              )}
             </dl>
             <div className="mt-4">
               <p className="text-sm text-slate-500">Problem description</p>

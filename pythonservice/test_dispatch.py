@@ -1,5 +1,5 @@
 """Tests for the ranking logic. Run with:  python test_dispatch.py   (or: python -m pytest)"""
-from dispatch_logic import haversine_km, rank_providers
+from dispatch_logic import build_assignment, estimate_eta_minutes, haversine_km, rank_providers
 
 
 def test_distance_same_point_is_zero():
@@ -52,6 +52,28 @@ def test_request_without_location_ranks_by_jobs_only():
 
 def test_empty_list():
     assert rank_providers(13.0, 80.0, []) == []
+
+
+def test_eta_is_distance_over_assumed_speed():
+    assert estimate_eta_minutes(3.4) == 12      # 3.4 km at 17 km/h
+    assert estimate_eta_minutes(0.1) == 1       # never less than 1 minute
+    assert estimate_eta_minutes(None) is None
+
+
+def test_assignment_format():
+    providers = [
+        {"id": "p1", "name": "Raju Auto Care", "active_jobs": 0, "lat": 13.030578, "lng": 80.0},
+        {"id": "p2", "name": "Far Garage", "active_jobs": 0, "lat": 13.3, "lng": 80.0},
+    ]
+    result = build_assignment("REQ-1024", 13.0, 80.0, providers)
+    assert result == {"requestId": "REQ-1024", "status": "ASSIGNED", "provider": "Raju Auto Care",
+                      "distanceKm": 3.4, "etaMinutes": 12}
+
+
+def test_assignment_with_no_providers_stays_reported():
+    result = build_assignment("REQ-1025", 13.0, 80.0, [])
+    assert result == {"requestId": "REQ-1025", "status": "REPORTED", "provider": None,
+                      "distanceKm": None, "etaMinutes": None}
 
 
 if __name__ == "__main__":

@@ -29,6 +29,8 @@ const requestSchema = new mongoose.Schema(
     status: { type: String, enum: STATUSES, default: 'Reported', index: true },
     provider: { type: mongoose.Schema.Types.ObjectId, ref: 'User', index: true },
     rejectedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // providers who rejected it
+    distanceKm: { type: Number, min: 0 }, // provider distance when automatically assigned
+    etaMinutes: { type: Number, min: 0 }, // estimated travel time at an assumed average speed
     providerNotes: { type: String, trim: true, maxlength: 500 },
     estimatedCost: { type: Number, min: 0 },
     finalCost: { type: Number, min: 0 },
