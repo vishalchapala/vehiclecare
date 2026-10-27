@@ -17,6 +17,8 @@ const userSchema = new mongoose.Schema(
     providerProfile: {
       services: [String],
       isAvailable: { type: Boolean, default: true },
+      // Where the provider works from. Used to rank providers by distance.
+      location: { lat: { type: Number, min: -90, max: 90 }, lng: { type: Number, min: -180, max: 180 } },
     },
   },
   { timestamps: true }

@@ -6,14 +6,53 @@ const ACTIVE = ['Assigned', 'Accepted', 'En Route', 'In Progress'];
 
 const label = (r) => (r.type === 'maintenance' ? `service "${r.category}"` : `breakdown "${r.category}"`);
 
-// Picks the available provider with the fewest active jobs (ties: the first found).
-async function pickProvider(excludeIds = []) {
+// Asks the Python dispatch service to rank providers by distance and workload.
+// Returns { provider, distanceKm } or null when the service is not configured, too slow, or down.
+async function rankWithPython(request, providers, load) {
+  const base = process.env.PYTHON_SERVICE_URL;
+  const key = process.env.INTERNAL_KEY;
+  if (!base || !key || request.latitude == null || request.longitude == null) return null;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4000); // never make the customer wait long
+  try {
+    const res = await fetch(`${base.replace(/\/$/, '')}/rank`, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'content-type': 'application/json', 'x-internal-key': key },
+      body: JSON.stringify({
+        lat: request.latitude,
+        lng: request.longitude,
+        providers: providers.map((p) => ({
+          id: String(p._id),
+          name: p.name,
+          active_jobs: load.get(String(p._id)) || 0,
+          lat: p.providerProfile?.location?.lat ?? null,
+          lng: p.providerProfile?.location?.lng ?? null,
+        })),
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const first = data.ranking && data.ranking[0];
+    const provider = first && providers.find((p) => String(p._id) === first.id);
+    return provider ? { provider, distanceKm: first.distance_km } : null;
+  } catch (err) {
+    console.warn('Dispatch service unavailable, using the fallback rule:', err.message);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Chooses a provider. Preferred: Python service (distance + workload). Fallback: fewest active jobs.
+async function pickProvider(request) {
   const providers = await User.find({
     role: 'provider',
     isActive: true,
     'providerProfile.isAvailable': { $ne: false },
-    _id: { $nin: excludeIds },
-  }).select('_id name');
+    _id: { $nin: request.rejectedBy || [] },
+  }).select('_id name providerProfile.location');
   if (!providers.length) return null;
 
   const counts = await BreakdownRequest.aggregate([
@@ -21,18 +60,25 @@ async function pickProvider(excludeIds = []) {
     { $group: { _id: '$provider', n: { $sum: 1 } } },
   ]);
   const load = new Map(counts.map((c) => [String(c._id), c.n]));
+
+  const ranked = await rankWithPython(request, providers, load);
+  if (ranked && ranked.distanceKm != null) {
+    return { provider: ranked.provider, method: `nearest available, ${ranked.distanceKm} km away` };
+  }
+
   providers.sort((a, b) => (load.get(String(a._id)) || 0) - (load.get(String(b._id)) || 0));
-  return providers[0];
+  return { provider: providers[0], method: 'least busy' };
 }
 
 // Automatic assignment. Returns the provider, or null when nobody is available (the request stays open).
 async function autoAssign(request) {
-  const provider = await pickProvider(request.rejectedBy || []);
-  if (!provider) return null;
+  const choice = await pickProvider(request);
+  if (!choice) return null;
+  const { provider, method } = choice;
 
   request.provider = provider._id;
   request.status = 'Assigned';
-  request.statusHistory.push({ status: 'Assigned', note: `Automatically assigned to ${provider.name}` });
+  request.statusHistory.push({ status: 'Assigned', note: `Automatically assigned to ${provider.name} (${method})` });
   await request.save();
 
   await notify(provider._id, `A new ${label(request)} was assigned to you`, request._id);

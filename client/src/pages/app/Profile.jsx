@@ -5,6 +5,7 @@ import { validateName, validatePhone, validatePassword } from '../../utils/valid
 import Button from '../../components/ui/Button.jsx'
 import Input from '../../components/ui/Input.jsx'
 import Alert from '../../components/ui/Alert.jsx'
+import LocationPicker from '../../components/LocationPicker.jsx'
 
 export default function Profile() {
   const { user, setUser } = useAuth()
@@ -33,6 +34,26 @@ export default function Profile() {
       setMsg({ type: 'error', text: errorMessage(err) })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const saved = user.providerProfile?.location
+  const [spot, setSpot] = useState(saved?.lat != null ? { lat: saved.lat, lng: saved.lng } : null)
+  const [spotMsg, setSpotMsg] = useState({ type: '', text: '' })
+  const [spotSaving, setSpotSaving] = useState(false)
+
+  const saveSpot = async () => {
+    if (!spot) return setSpotMsg({ type: 'error', text: 'Click the map to place the pin first.' })
+    setSpotSaving(true)
+    setSpotMsg({ type: '', text: '' })
+    try {
+      const res = await api.patch('/auth/provider-location', spot)
+      setUser(res.data.data.user)
+      setSpotMsg({ type: 'success', text: 'Service location saved.' })
+    } catch (err) {
+      setSpotMsg({ type: 'error', text: errorMessage(err) })
+    } finally {
+      setSpotSaving(false)
     }
   }
 
@@ -70,6 +91,18 @@ export default function Profile() {
           <Alert type={msg.type === 'success' ? 'success' : 'error'}>{msg.text}</Alert>
           <Button type="submit" loading={saving}>Save changes</Button>
         </form>
+
+        {user.role === 'provider' && (
+          <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6">
+            <h2 className="text-lg font-semibold text-ink">Your service location</h2>
+            <p className="text-sm text-slate-600">
+              Mark where you work from. New requests are matched to the nearest available provider, so setting this helps you receive nearby jobs.
+            </p>
+            <LocationPicker value={spot} onChange={setSpot} />
+            <Alert type={spotMsg.type === 'success' ? 'success' : 'error'}>{spotMsg.text}</Alert>
+            <Button onClick={saveSpot} loading={spotSaving}>Save location</Button>
+          </section>
+        )}
 
         <form onSubmit={savePassword} noValidate className="space-y-5 rounded-xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-ink">Change password</h2>

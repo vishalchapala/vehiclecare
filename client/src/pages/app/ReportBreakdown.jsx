@@ -9,6 +9,7 @@ import Input from '../../components/ui/Input.jsx'
 import Select from '../../components/ui/Select.jsx'
 import Textarea from '../../components/ui/Textarea.jsx'
 import Alert from '../../components/ui/Alert.jsx'
+import LocationPicker from '../../components/LocationPicker.jsx'
 import PageLoader from '../../components/ui/PageLoader.jsx'
 import EmptyState from '../../components/ui/EmptyState.jsx'
 
@@ -93,6 +94,14 @@ export default function ReportBreakdown() {
           </Button>
           {locMsg && <p className="mt-2 text-sm text-slate-600">{locMsg}</p>}
           {coords && <p className="mt-1 text-sm text-slate-500">Coordinates: {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}</p>}
+        </div>
+        <div>
+          <p className="mb-1.5 text-sm font-medium text-slate-800">Mark the exact spot on the map (optional)</p>
+          <LocationPicker
+            value={coords ? { lat: coords.latitude, lng: coords.longitude } : null}
+            onChange={(p) => setCoords({ latitude: p.lat, longitude: p.lng })}
+          />
+          <p className="mt-1.5 text-sm text-slate-500">Click the map to place the pin. The provider will see it on their map.</p>
         </div>
         <Input id="contactPhone" name="contactPhone" type="tel" label="Contact number" value={form.contactPhone}
           onChange={update} hint="10-digit mobile number." required />

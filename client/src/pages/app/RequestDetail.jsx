@@ -11,6 +11,7 @@ import Input from '../../components/ui/Input.jsx'
 import Textarea from '../../components/ui/Textarea.jsx'
 import Alert from '../../components/ui/Alert.jsx'
 import PageLoader from '../../components/ui/PageLoader.jsx'
+import LocationPicker from '../../components/LocationPicker.jsx'
 
 const CANCELLABLE = ['Reported', 'Assigned', 'Accepted']
 // The provider's next step in the workflow.
@@ -190,6 +191,21 @@ export default function RequestDetail() {
               <p className="mt-0.5 text-ink">{r.description}</p>
             </div>
           </section>
+
+          {r.latitude != null && r.longitude != null && (
+            <section className="rounded-xl border border-slate-200 bg-white p-6">
+              <h2 className="mb-4 text-lg font-semibold text-ink">Location on map</h2>
+              <LocationPicker value={{ lat: r.latitude, lng: r.longitude }} height={260} />
+              <a
+                href={`https://www.openstreetmap.org/?mlat=${r.latitude}&mlon=${r.longitude}#map=17/${r.latitude}/${r.longitude}`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-block text-sm font-semibold text-brand-600 hover:underline"
+              >
+                Open in OpenStreetMap
+              </a>
+            </section>
+          )}
 
           <section className="rounded-xl border border-slate-200 bg-white p-6">
             <h2 className="mb-4 text-lg font-semibold text-ink">Service details</h2>

@@ -53,6 +53,13 @@ exports.setAvailability = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { user: req.user } });
 });
 
+// PATCH /api/auth/provider-location  (provider saves where they work from)
+exports.setProviderLocation = asyncHandler(async (req, res) => {
+  req.user.set('providerProfile.location', { lat: Number(req.body.lat), lng: Number(req.body.lng) });
+  await req.user.save();
+  res.json({ success: true, data: { user: req.user } });
+});
+
 // PATCH /api/auth/profile  (change own name and phone)
 exports.updateProfile = asyncHandler(async (req, res) => {
   req.user.name = req.body.name;

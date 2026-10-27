@@ -3,7 +3,7 @@ const { body } = require('express-validator');
 const rateLimit = require('express-rate-limit');
 const validate = require('../middleware/validate');
 const { protect, authorize } = require('../middleware/auth');
-const { register, login, me, setAvailability, updateProfile, changePassword, forgotPassword, resetPassword } = require('../controllers/authController');
+const { register, login, me, setAvailability, setProviderLocation, updateProfile, changePassword, forgotPassword, resetPassword } = require('../controllers/authController');
 
 // Slows down password-guessing attacks.
 const authLimiter = rateLimit({
@@ -65,6 +65,17 @@ router.post(
 );
 
 router.get('/me', protect, me);
+router.patch(
+  '/provider-location',
+  protect,
+  authorize('provider'),
+  [
+    body('lat').isFloat({ min: -90, max: 90 }).withMessage('Latitude must be between -90 and 90'),
+    body('lng').isFloat({ min: -180, max: 180 }).withMessage('Longitude must be between -180 and 180'),
+  ],
+  validate,
+  setProviderLocation
+);
 router.patch(
   '/profile',
   protect,
